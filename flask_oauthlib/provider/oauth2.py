@@ -581,8 +581,16 @@ class OAuth2RequestValidator(RequestValidator):
         .. _`Section 4.1.3`: http://tools.ietf.org/html/rfc6749#section-4.1.3
         .. _`Section 6`: http://tools.ietf.org/html/rfc6749#section-6
         """
-        grant_types = ('password', 'authorization_code', 'refresh_token')
-        return request.grant_type in grant_types
+
+        if request.grant_type == 'password':
+            client = self._clientgetter(request.client_id)
+            return (not client) or client.client_type == 'confidential' \
+                    or client.client_secret
+        elif request.grant_type == 'authorization_code':
+            client = self._clientgetter(request.client_id)
+            return (not client) or client.client_type == 'confidential'
+        return 'Authorization' in request.headers \
+                and request.grant_type == 'refresh_token'
 
     def authenticate_client(self, request, *args, **kwargs):
         auth = request.headers.get('Authorization', None)
